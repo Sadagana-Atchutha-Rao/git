@@ -24,37 +24,14 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      # 3. Install Maven if missing
-      - name: Ensure Maven is installed
-        run: |
-          if ! command -v mvn &> /dev/null; then
-            echo "Maven not found. Installing..."
-            sudo dnf install -y maven
-          else
-            echo "Maven is already installed"
-          fi
-          mvn -version
-      # 4. Cache Maven dependencies
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # 5. Build with Maven
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-
-      # 6. Upload WAR as artifact (optional, for later jobs)
+      # 4. Upload WAR as artifact (optional, for later jobs)
       - name: Upload WAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: myapp
           path: target/*.war
-      # 6. Install SonarQube Scanner CLI
+
+      # 5. Install SonarQube Scanner CLI
       - name: Install SonarQube Scanner CLI
         run: |
           if [ ! -d "$HOME/sonar-scanner-cli" ]; then
@@ -65,7 +42,7 @@ jobs:
           fi
           export PATH=$HOME/sonar-scanner-cli/bin:$PATH
           sonar-scanner -v
-      # 7. SonarQube analysis
+      # 6. SonarQube analysis
       - name: SonarQube Analysis
         env:
           SONAR_HOST: ${{ secrets.SONAR_HOST }}
@@ -97,7 +74,3 @@ jobs:
           echo "Deploying $WAR_FILE to Tomcat..."
           curl -v --upload-file "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}@${{ secrets.TOMCAT_HOST }}/manager/text/deploy?path=/myapp&update=true"
-      # 9. Optional: verify deployment
-      - name: Verify deployment
-        run: |
-          curl -I http://${{ secrets.TOMCAT_HOST }}/myapp
